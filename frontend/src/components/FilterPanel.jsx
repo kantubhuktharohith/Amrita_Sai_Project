@@ -1,0 +1,37 @@
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DEPARTMENTS, SEMESTERS, YEARS } from "@/data/academicConstants";
+const FilterPanel = ({ department, semester, year, onDepartmentChange, onSemesterChange, onYearChange, }) => {
+    return (<div className="flex flex-wrap gap-3">
+      <Select value={department} onValueChange={onDepartmentChange}>
+        <SelectTrigger className="w-full min-w-[140px] sm:w-[200px] bg-card">
+          <SelectValue placeholder="Department"/>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Departments</SelectItem>
+          {DEPARTMENTS.map((d) => (<SelectItem key={d} value={d}>{d}</SelectItem>))}
+        </SelectContent>
+      </Select>
+
+      <Select value={semester} onValueChange={onSemesterChange}>
+        <SelectTrigger className="w-full min-w-[120px] sm:w-[140px] bg-card">
+          <SelectValue placeholder="Semester"/>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Semesters</SelectItem>
+          <SelectItem value="0">Skill / Non-Syllabus</SelectItem>
+          {SEMESTERS.map((s) => (<SelectItem key={s} value={String(s)}>Semester {s}</SelectItem>))}
+        </SelectContent>
+      </Select>
+
+      <Select value={year} onValueChange={onYearChange}>
+        <SelectTrigger className="w-full min-w-[100px] sm:w-[120px] bg-card">
+          <SelectValue placeholder="Year"/>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Years</SelectItem>
+          {YEARS.map((y) => (<SelectItem key={y} value={String(y)}>Year {y}</SelectItem>))}
+        </SelectContent>
+      </Select>
+    </div>);
+};
+export default FilterPanel;

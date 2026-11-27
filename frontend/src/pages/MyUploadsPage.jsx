@@ -1,0 +1,194 @@
+import { useState } from "react";
+import { Navigate, Link } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import NoteCard from "@/components/NoteCard";
+import ExamPaperCard from "@/components/ExamPaperCard";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/contexts/AuthContext";
+import { fetchNotesWithProfiles, fetchExamPapersWithProfiles, } from "@/lib/noteQueries";
+import { api } from "@/lib/api";
+import { Loader2, Trash2, Pencil } from "lucide-react";
+import { toast } from "sonner";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, } from "@/components/ui/alert-dialog";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+import EditNoteModal from "@/components/EditNoteModal";
+import EditExamPaperModal from "@/components/EditExamPaperModal";
+const MyUploadsPage = () => {
+    const { user } = useAuth();
+    const queryClient = useQueryClient();
+    const { isAdmin } = useIsAdmin();
+    const [editingNote, setEditingNote] = useState(null);
+    const [editingPaper, setEditingPaper] = useState(null);
+    const { data: notes = [], isLoading: notesLoading } = useQuery({
+        queryKey: ["my-notes", user?.id],
+        queryFn: () => fetchNotesWithProfiles({ userId: user?.id }),
+        enabled: !!user,
+    });
+    const { data: examPapers = [], isLoading: papersLoading } = useQuery({
+        queryKey: ["my-exam-papers", user?.id],
+        queryFn: () => fetchExamPapersWithProfiles({ userId: user?.id }),
+        enabled: !!user,
+    });
+    if (!user)
+        return <Navigate to="/login" replace/>;
+    const handleDeleteNote = async (noteId) => {
+        try {
+            await api.notes.delete(noteId);
+            queryClient.invalidateQueries({ queryKey: ["my-notes"] });
+            queryClient.invalidateQueries({ queryKey: ["notes"] });
+            queryClient.invalidateQueries({ queryKey: ["top-notes"] });
+            toast.success("Note deleted successfully.");
+        }
+        catch (err) {
+            const error = err;
+            toast.error(error.message || "Failed to delete.");
+        }
+    };
+    const handleDeletePaper = async (paperId) => {
+        try {
+            await api.examPapers.delete(paperId);
+            queryClient.invalidateQueries({ queryKey: ["my-exam-papers"] });
+            queryClient.invalidateQueries({ queryKey: ["exam-papers"] });
+            toast.success("Exam paper deleted successfully.");
+        }
+        catch (err) {
+            const error = err;
+            toast.error(error.message || "Failed to delete.");
+        }
+    };
+    return (<div className="container py-8">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="font-display text-2xl font-bold mb-1">My Uploads</h1>
+          <p className="text-sm text-muted-foreground">
+            Manage and edit your uploaded notes and exam papers
+          </p>
+        </div>
+      </div>
+
+      <Tabs defaultValue="notes">
+        <TabsList className="mb-6">
+          <TabsTrigger value="notes">Notes ({notes.length})</TabsTrigger>
+          <TabsTrigger value="exam-papers">
+            Exam Papers ({examPapers.length})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="notes">
+          {notesLoading ? (<div className="py-16 flex justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary"/>
+            </div>) : notes.length === 0 ? (<div className="py-16 text-center">
+              <p className="text-muted-foreground mb-4">
+                No notes uploaded yet.
+              </p>
+              <Link to="/upload">
+                <Button variant="outline">Upload notes</Button>
+              </Link>
+            </div>) : (<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {notes.map((note) => (<div key={note.id} className="relative group">
+                  <NoteCard note={note}/>
+                  {note.status === "pending" && (<Badge className="absolute top-2 right-2 bg-warning text-warning-foreground text-[10px]">
+                      Pending
+                    </Badge>)}
+
+                  <div className="absolute bottom-2 right-2 flex items-center gap-1.5 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10">
+                    <Button variant="secondary" size="icon" className="h-8 w-8 bg-background/90 hover:bg-background shadow-sm border" title="Edit note details" onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setEditingNote(note);
+                }}>
+                      <Pencil className="h-3.5 w-3.5 text-foreground"/>
+                    </Button>
+
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="icon" className="h-8 w-8 shadow-sm" title="Delete note" onClick={(e) => e.stopPropagation()}>
+                          <Trash2 className="h-4 w-4"/>
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete this note?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete "{note.title}". This
+                            cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeleteNote(note.id, note.file_url)}>
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>))}
+            </div>)}
+        </TabsContent>
+
+        <TabsContent value="exam-papers">
+          {papersLoading ? (<div className="py-16 flex justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary"/>
+            </div>) : examPapers.length === 0 ? (<div className="py-16 text-center">
+              <p className="text-muted-foreground mb-4">
+                No exam papers uploaded yet.
+              </p>
+              <Link to="/upload-exam-paper">
+                <Button variant="outline">Upload exam paper</Button>
+              </Link>
+            </div>) : (<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {examPapers.map((paper) => (<div key={paper.id} className="relative group">
+                  <ExamPaperCard paper={paper}/>
+                  {paper.status === "pending" && (<Badge className="absolute top-2 right-2 bg-warning text-warning-foreground text-[10px]">
+                      Pending
+                    </Badge>)}
+
+                  <div className="absolute bottom-2 right-2 flex items-center gap-1.5 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10">
+                    <Button variant="secondary" size="icon" className="h-8 w-8 bg-background/90 hover:bg-background shadow-sm border" title="Edit exam paper details" onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setEditingPaper(paper);
+                }}>
+                      <Pencil className="h-3.5 w-3.5 text-foreground"/>
+                    </Button>
+
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="icon" className="h-8 w-8 shadow-sm" title="Delete exam paper" onClick={(e) => e.stopPropagation()}>
+                          <Trash2 className="h-4 w-4"/>
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            Delete this exam paper?
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete "{paper.title}". This
+                            cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeletePaper(paper.id, paper.file_url)}>
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>))}
+            </div>)}
+        </TabsContent>
+      </Tabs>
+
+      {/* Edit Dialogs */}
+      <EditNoteModal note={editingNote} open={!!editingNote} onOpenChange={(open) => !open && setEditingNote(null)}/>
+
+      <EditExamPaperModal paper={editingPaper} open={!!editingPaper} onOpenChange={(open) => !open && setEditingPaper(null)}/>
+    </div>);
+};
+export default MyUploadsPage;

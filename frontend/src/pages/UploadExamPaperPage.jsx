@@ -9,10 +9,12 @@ import { Label } from "@/components/ui/label";
 import { SEMESTERS } from "@/data/academicConstants";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { api } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 const UploadExamPaperPage = () => {
     const { user } = useAuth();
+    const { isAdmin, isLoading: adminLoading } = useIsAdmin();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [title, setTitle] = useState("");
@@ -24,6 +26,10 @@ const UploadExamPaperPage = () => {
     const [uploading, setUploading] = useState(false);
     if (!user)
         return <Navigate to="/login" replace/>;
+    if (!adminLoading && !isAdmin) {
+        toast.error("Only administrators are permitted to upload exam papers.");
+        return <Navigate to="/" replace/>;
+    }
     const getFileType = (fileName) => {
         const ext = fileName.split(".").pop()?.toLowerCase();
         if (ext === "pdf")

@@ -2,11 +2,16 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus, FileText, BookOpen, FolderUp, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Button } from "@/components/ui/button";
 import { AnimatePresence, motion } from "framer-motion";
 const MobileUploadFAB = () => {
     const { user } = useAuth();
+    const { isAdmin } = useIsAdmin();
     const [open, setOpen] = useState(false);
+
+    // Only administrators can upload resources
+    if (!isAdmin) return null;
     return (<>
       {/* Backdrop to close menu when clicking outside */}
       <AnimatePresence>

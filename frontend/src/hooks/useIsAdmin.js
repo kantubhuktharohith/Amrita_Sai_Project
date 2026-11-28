@@ -4,7 +4,13 @@ import { useAuth } from "@/contexts/AuthContext";
 
 export const useIsAdmin = () => {
   const { user } = useAuth();
-  const { data: isAdmin = false, isLoading } = useQuery({
+  
+  // Check if session-based admin auth exists (from Admin Panel login)
+  const sessionAdmin =
+    typeof window !== "undefined" &&
+    sessionStorage.getItem("campusorbit_admin_auth") === "true";
+
+  const { data: dbAdmin = false, isLoading } = useQuery({
     queryKey: ["is-admin", user?.id],
     queryFn: async () => {
       if (!user) return false;
@@ -13,5 +19,5 @@ export const useIsAdmin = () => {
     enabled: !!user,
   });
 
-  return { isAdmin, isLoading };
+  return { isAdmin: Boolean(sessionAdmin || dbAdmin), isLoading };
 };

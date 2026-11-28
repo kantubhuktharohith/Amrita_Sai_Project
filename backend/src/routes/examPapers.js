@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { supabase } from '../services/supabase.js';
-import { requireAuth } from '../middleware/authMiddleware.js';
+import { requireAuth, requireAdmin } from '../middleware/authMiddleware.js';
 
 const router = Router();
 
@@ -108,8 +108,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/exam-papers - Create new exam paper
-router.post('/', requireAuth, async (req, res) => {
+// POST /api/exam-papers - Create new exam paper (Admin only)
+router.post('/', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { title, subject, department, semester, exam_type, year, file_url, file_type, file_size } = req.body;
 

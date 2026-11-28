@@ -9,9 +9,11 @@ import { Label } from "@/components/ui/label";
 import { SEMESTERS } from "@/data/academicConstants";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { api } from "@/lib/api";
 const UploadPage = () => {
     const { user } = useAuth();
+    const { isAdmin, isLoading: adminLoading } = useIsAdmin();
     const navigate = useNavigate();
     const [title, setTitle] = useState("");
     const [subject, setSubject] = useState("");
@@ -22,6 +24,10 @@ const UploadPage = () => {
     const [uploading, setUploading] = useState(false);
     if (!user)
         return <Navigate to="/login" replace/>;
+    if (!adminLoading && !isAdmin) {
+        toast.error("Only administrators are permitted to upload study notes.");
+        return <Navigate to="/" replace/>;
+    }
     const getFileType = (fileName) => {
         const ext = fileName.split(".").pop()?.toLowerCase();
         if (ext === "pdf")
